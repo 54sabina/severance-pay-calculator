@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="被資遣時試算資遣費、預告工資、特休未休工資與謀職假天數。">
+<title>資遣不求人</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: 左側輸入（桌機黏住）、右側結果；結果像一張離職結算單，每列附法條與算式 */
+:root{
+  --bg:#eef2f1; --paper:#ffffff; --ink:#15241f; --muted:#5b6b66; --line:#d5dedb;
+  --accent:#0d6b58; --accent-soft:#dcefe9; --warn:#a4501b; --warn-soft:#f8e9dd; --danger:#c62828;
+  --f-display:"Noto Serif TC","Songti TC","PMingLiU",serif;
+  --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1714; --paper:#16211d; --ink:#e3ece8; --muted:#93a39d; --line:#2a3833;
+  --accent:#4fc2a5; --accent-soft:#183a31; --warn:#e79a63; --warn-soft:#3a2617; --danger:#ff7b72; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1714; --paper:#16211d; --ink:#e3ece8; --muted:#93a39d; --line:#2a3833;
+  --accent:#4fc2a5; --accent-soft:#183a31; --warn:#e79a63; --warn-soft:#3a2617; --danger:#ff7b72; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+.wrap{max-width:1080px;margin:0 auto;display:grid;gap:28px}
+header h1{font-family:var(--f-display);font-weight:900;font-size:clamp(28px,5vw,40px);margin:0;letter-spacing:.02em;text-wrap:balance}
+header p{margin:6px 0 0;color:var(--muted);max-width:60ch}
+.grid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:820px){.grid{grid-template-columns:minmax(0,1fr)}}
+form{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:20px;display:grid;gap:16px;position:sticky;top:16px}
+@media (max-width:820px){form{position:static}}
+.field{display:grid;gap:4px}
+label{font-size:13px;font-weight:700}
+.hint{font-size:12px;color:var(--muted);line-height:1.45}
+input[type=date],input[type=number]{font:inherit;font-family:var(--f-num);font-size:15px;width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+input:focus-visible,summary:focus-visible,a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:13px}
+.check input{margin-top:4px;accent-color:var(--accent)}
+.sec{font-size:11px;letter-spacing:.12em;color:var(--muted);font-weight:700;border-top:1px solid var(--line);padding-top:12px}
+.results{display:grid;gap:16px;min-width:0}
+.total{background:var(--accent);color:var(--paper);border-radius:10px;padding:20px 22px;display:grid;gap:4px}
+.total .k{font-size:13px;opacity:.85}
+.total .v{font-family:var(--f-num);font-size:clamp(30px,6vw,44px);font-weight:600;font-variant-numeric:tabular-nums;line-height:1.15}
+.total .s{font-size:13px;opacity:.9}
+.tenure{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:14px;color:var(--muted)}
+.tenure b{color:var(--ink);font-family:var(--f-num);font-weight:600}
+.sheet{background:var(--paper);border:1px solid var(--line);border-radius:10px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;padding:16px 20px;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row h3{margin:0;font-size:16px;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.law{font-size:11px;font-weight:500;color:var(--accent);background:var(--accent-soft);padding:1px 7px;border-radius:999px;letter-spacing:.03em;text-decoration:none}
+.amt{font-family:var(--f-num);font-weight:600;font-size:20px;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.amt.zero{color:var(--muted)}
+.how{grid-column:1/-1;font-size:13px;color:var(--muted)}
+.how code{font-family:var(--f-num);font-size:12.5px;color:var(--ink);background:var(--bg);padding:1px 6px;border-radius:4px;overflow-wrap:anywhere}
+.flag{grid-column:1/-1;font-size:13px;background:var(--warn-soft);color:var(--warn);padding:8px 10px;border-radius:6px}
+.weeks{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.wk{border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-size:12px;min-width:120px;background:var(--bg)}
+.wk b{display:block;font-family:var(--f-num);color:var(--accent);font-size:15px}
+a.law:hover{text-decoration:underline}
+.notes{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:20px 22px;display:grid;gap:14px}
+.notes h2{margin:0;font-family:var(--f-display);font-size:20px;font-weight:700}
+.notes ol{margin:0;padding-left:1.4em;display:grid;gap:10px;font-size:14px;max-width:80ch}
+.notes li::marker{color:var(--accent);font-family:var(--f-num);font-weight:600}
+.notes li b{color:var(--ink)}
+.notes li b.danger{color:var(--danger)}  /* 一定要提醒的重點用紅字 */
+.notes li span.d{color:var(--muted)}
+.notes a{color:var(--accent)}
+.disc{font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;margin:0}
+.sel{user-select:all;font-family:var(--f-num);color:var(--ink)}
+@media (prefers-reduced-motion:no-preference){.amt,.total .v{transition:color .2s}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>資遣不求人</h1>
+    <p>被資遣時，公司該給你多少？輸入日期和薪水，一次算出資遣費、預告工資、特休未休工資和謀職假天數。下方已填入範例，改成你的資料即可。</p>
+  </header>
+
+  <div class="grid">
+    <form id="f" autocomplete="off">
+      <div class="field">
+        <label for="start">到職日</label>
+        <input type="date" id="start" value="2023-03-15">
+      </div>
+      <div class="field">
+        <label for="notice">公司通知資遣的日期</label>
+        <input type="date" id="notice" value="2026-10-20">
+        <span class="hint">留空＝假設公司有依法提前預告</span>
+      </div>
+      <div class="field">
+        <label for="end">最後工作日（離職日）</label>
+        <input type="date" id="end" value="2026-11-10">
+      </div>
+
+      <div class="sec">薪資</div>
+      <div class="field">
+        <label for="wage">最近一個月薪資（正常工時）</label>
+        <input type="number" id="wage" inputmode="numeric" min="0" step="100" value="42000">
+        <span class="hint">本薪＋固定津貼，不含加班費</span>
+      </div>
+      <div class="field">
+        <label for="avg">離職前 6 個月平均月薪</label>
+        <input type="number" id="avg" inputmode="numeric" min="0" step="100" placeholder="留空＝同上">
+        <span class="hint">資遣費用這個算；有加班費、獎金時通常會比較高</span>
+      </div>
+
+      <div class="sec">特休</div>
+      <div class="field">
+        <label for="used">今年度已休特休時數</label>
+        <input type="number" id="used" inputmode="decimal" min="0" step="0.5" value="40">
+        <span class="hint">1 天以 8 小時計</span>
+      </div>
+      <div class="field">
+        <label for="remain">或直接填剩餘特休時數</label>
+        <input type="number" id="remain" inputmode="decimal" min="0" step="0.5" placeholder="例如 56">
+        <span class="hint">知道剩幾小時就直接填（週年制、曆年制都可以），有填就以這個為準。記得算進去年遞延未休的時數</span>
+      </div>
+
+      <label class="check"><input type="checkbox" id="old"> 民國 94 年 7 月 1 日前到職，且保留舊制年資</label>
+    </form>
+
+    <section class="results">
+      <div class="total" aria-live="polite">
+        <span class="k">公司應付給你（合計）</span>
+        <span class="v" id="total">—</span>
+        <span class="s" id="totalSub"></span>
+      </div>
+      <div class="tenure" id="tenure"></div>
+
+      <div class="sheet" id="sheet"></div>
+    </section>
+  </div>
+
+  <section class="notes" aria-labelledby="nt">
+    <h2 id="nt">注意事項</h2>
+    <ol>
+      <li><b>哪些情況適用這個試算</b><br><span class="d">公司依<a href="https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&amp;flno=11" target="_blank" rel="noopener">勞基法第 11 條</a>（歇業、虧損、業務緊縮、不能勝任工作等）資遣你，或你依<a href="https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&amp;flno=14" target="_blank" rel="noopener">勞基法第 14 條</a>因公司違法而終止契約，才有資遣費。被依<a href="https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&amp;flno=12" target="_blank" rel="noopener">勞基法第 12 條</a>懲戒解僱、或自己提離職，都沒有資遣費和謀職假。</span></li>
+      <li><b>資遣費用「平均工資」算</b><br><span class="d">平均工資是離職前 6 個月的工資總額，除以這段期間的總日數，再乘 30（<a href="https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&amp;flno=2" target="_blank" rel="noopener">勞基法第 2 條</a>）。加班費、經常性獎金要算進去，年終獎金等非經常性給與不算。如果和月薪差很多，請在左邊另外填。</span></li>
+      <li><b>年資從到職那天起算</b><br><span class="d">試用期也算在內；同一雇主調動單位的年資要合併計算（<a href="https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&amp;flno=57" target="_blank" rel="noopener">勞基法第 57 條</a>）。</span></li>
+      <li><b>預告期間用日曆天算</b><br><span class="d">從通知的隔天起算，算到最後工作日（<a href="https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&amp;flno=16" target="_blank" rel="noopener">勞基法第 16 條</a>）。公司給的天數不夠，差幾天就要補幾天工資。</span></li>
+      <li><b>特休以週年制計算</b><br><span class="d">天數依<a href="https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&amp;flno=38" target="_blank" rel="noopener">勞基法第 38 條</a>，1 天以 8 小時換算。如果你已經知道剩幾小時（例如從打卡系統查到），或公司用曆年制、會計年度制，或有去年遞延沒休完的時數，請直接填「剩餘特休時數」，會比自動推算更準。離職時沒休完的特休，公司要折算工資給你。</span></li>
+      <li><b>謀職假公司不能拒絕</b><br><span class="d">預告期間每 7 天可請 2 天，工資照給，公司也不能要求你拿面試證明（<a href="https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&amp;flno=16" target="_blank" rel="noopener">勞基法第 16 條</a> 第 2 項）。</span></li>
+      <li><b>付款期限</b><br><span class="d">資遣費應在離職後 30 日內付清（<a href="https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&amp;flno=12" target="_blank" rel="noopener">勞工退休金條例第 12 條</a>）；薪資、預告工資和特休工資應在離職時結清。</span></li>
+      <li><b class="danger">記得拿非自願離職證明</b><br><span class="d">申請失業給付要用。公司也必須在你離職 10 日前向主管機關通報資遣（<a href="https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0090001&amp;flno=33" target="_blank" rel="noopener">就業服務法第 33 條</a>）。</span></li>
+    </ol>
+    <p class="disc">本工具依勞動部公告的公式試算，僅供參考，不構成法律意見；實際金額以薪資明細為準。可對照 <a href="https://www.mol.gov.tw/1607/28162/28296/81778/81793/81935/" target="_blank" rel="noopener">勞動部資遣費說明</a>，有爭議可撥勞工諮詢專線 <span class="sel">1955</span>，或向勞工局申請勞資爭議調解。</p>
+  </section>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const fmt = n => "NT$ " + Math.round(n).toLocaleString("zh-TW");  // 金額：NT$ 12,345
+  const num = n => (Math.round(n*100)/100).toLocaleString("zh-TW");  // 一般數字：千分位、最多 2 位小數
+
+  // ── 日期工具 ──
+  // 一律以 UTC 毫秒數表示「純日期」，避免時區與日光節約時間造成的誤差
+  const DAY=86400000;
+  // 用 setUTCFullYear 而不用 Date.UTC：Date.UTC 會把 0–99 年當成 1900–1999 年
+  function utc(y,m,d){ const t=new Date(0); t.setUTCFullYear(y,m,d); return t.getTime(); }
+  // "YYYY-MM-DD" → UTC 毫秒；空白、或年份早於 1900（多半是年份還在輸入中）回傳 null
+  function parse(s){
+    if(!s) return null;
+    const [y,m,d]=s.split("-").map(Number);
+    return y>=1900 ? utc(y,m-1,d) : null;
+  }
+  function parts(t){ const d=new Date(t); return [d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()]; }
+  function dim(y,m){ return new Date(utc(y,m+1,0)).getUTCDate(); }  // 該月天數（m 從 0 起算）
+  const SPLIT=utc(2005,6,1);  // 勞退新制施行日 2005/7/1，新舊制年資的分界
+
+  // 年資：從 start 當天起算，到 endEx 為止（不含 endEx）→ {y 年, m 個月, d 天}
+  // 「滿 1 個月」依民法 §121：算到下個月相當日的前一天；
+  // 下個月沒有相當日（例如 1/31 起算遇到 2 月）就算到該月月底
+  function ymd(start,endEx){
+    const [sy,sm,sd]=parts(start), [ey,em]=parts(endEx);
+    // 從 start 起滿 k 個月之後的下一天（也就是第 k+1 個月的第一天）
+    const after=k=>{
+      const ty=sy+Math.floor((sm+k)/12), tm=(sm+k)%12;
+      return sd<=dim(ty,tm) ? utc(ty,tm,sd) : utc(ty,tm+1,1);
+    };
+    let k=(ey-sy)*12+(em-sm);  // 先抓月份差，超過 endEx 就往回退
+    while(k>0 && after(k)>endEx) k--;
+    return {y:Math.floor(k/12), m:k%12, d:Math.round((endEx-after(k))/DAY)};
+  }
+
+  // ── 法定天數 ──
+  // 預告天數（勞基法 §16 I）：未滿 3 個月不用預告；3 個月～1 年 10 天；1～3 年 20 天；3 年以上 30 天
+  function noticeDays(totalMonths){
+    if(totalMonths<3) return 0;
+    if(totalMonths<12) return 10;
+    if(totalMonths<36) return 20;
+    return 30;
+  }
+
+  // 謀職假（勞基法 §16 II）：把預告期間每 7 天切成一段，每段可請 2 天；
+  // 最後一段不滿 7 天仍可請 2 天，只剩 1 天則請 1 天。回傳 [{len 段長, days 可請天數}]
+  function jobLeave(n){
+    const out=[];
+    let left=n;
+    while(left>0){
+      const len=Math.min(7,left);
+      out.push({len, days:len>=2?2:1});
+      left-=len;
+    }
+    return out;
+  }
+
+  // 特休天數（勞基法 §38，週年制）：依離職當下所在的週年度給天數
+  // 滿 6 個月 3 天、1 年 7 天、2 年 10 天、3–5 年 14 天、5–10 年 15 天，
+  // 10 年以上每滿 1 年加 1 天，最多 30 天
+  function annual(totalMonths){
+    if(totalMonths<6) return 0;
+    const y=totalMonths/12;
+    if(y<1) return 3;
+    if(y<2) return 7;
+    if(y<3) return 10;
+    if(y<5) return 14;
+    if(y<10) return 15;
+    return Math.min(30, 15 + Math.floor(y) - 9);
+  }
+
+  // ── 結算單 HTML ──
+  // 法條標籤 → 全國法規資料庫的 pcode 與條號
+  const LAW={
+    "勞基法§16":"N0030001&flno=16","勞基法§16 II":"N0030001&flno=16","勞基法§17":"N0030001&flno=17",
+    "勞基法§38":"N0030001&flno=38","勞退條例§12":"N0030020&flno=12"};
+  const chip=k=>`<a class="law" href="https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=${LAW[k]}" target="_blank" rel="noopener" title="查看法條全文">${k}</a>`;
+  // 一列結算項目。amount 是數字時格式化成金額，是字串時（如「6 天」）原樣顯示；law 多條以「／」分隔
+  function row(title,{amount,law,how,extra=""}){
+    return `<div class="row"><h3>${title}${law.split("／").map(chip).join("")}</h3>
+      <div class="amt ${amount===0?'zero':''}">${typeof amount==="number"?fmt(amount):amount}</div>
+      <div class="how">${how}</div>${extra}</div>`;
+  }
+
+  // ── 四個結算項目 ──
+  // 每個函式都收 calc() 整理好的資料 c，回傳 row() 需要的 {amount, law, how, extra}
+  // 金額在這裡先四捨五入到元，合計才會等於畫面上各項相加
+
+  // 1. 資遣費
+  //    新制（勞退條例 §12）：每滿 1 年給 0.5 個月平均工資，未滿 1 年按比例，最高 6 個月
+  //    舊制（勞基法 §17）：每滿 1 年給 1 個月平均工資，未滿 1 個月以 1 個月計，沒有上限
+  //    保留舊制年資者：2005/7/1 前的年資用舊制、之後用新制，兩段相加
+  function severance(c){
+    const {start,endEx,avg,tenure,useOld}=c;
+    if(!useOld){
+      const yrs=tenure.y+(tenure.m+tenure.d/30)/12;
+      const base=Math.min(6,0.5*yrs);
+      return {amount:Math.round(base*avg), law:"勞退條例§12",
+        how:`<code>${num(avg)} × ½ × ${num(yrs)} 年</code> ＝ ${num(base)} 個月平均工資${base>=6?"（已達上限 6 個月）":""}`};
+    }
+    // 舊制段：到職日～2005/6/30，零頭天數進位成 1 個月
+    const oldT=ymd(start, Math.min(SPLIT,endEx));
+    let oldY=oldT.y, oldM=oldT.m+(oldT.d>0?1:0);
+    if(oldM===12){ oldY++; oldM=0; }
+    const oldBase=oldY+oldM/12, oldPay=Math.round(oldBase*avg);
+    // 新制段：2005/7/1～離職日（在 2005/7/1 前就離職則為 0）
+    let newT={y:0,m:0,d:0}, newBase=0;
+    if(endEx>SPLIT){
+      newT=ymd(SPLIT,endEx);
+      newBase=Math.min(6, 0.5*(newT.y+(newT.m+newT.d/30)/12));
+    }
+    const newPay=Math.round(newBase*avg);
+    return {amount:oldPay+newPay, law:"勞基法§17／勞退條例§12",
+      how:`舊制 ${oldY} 年 ${oldM} 個月（未滿 1 個月以 1 個月計）：<code>${num(avg)} × ${num(oldBase)}</code> ＝ ${fmt(oldPay)}<br>新制 ${newT.y} 年 ${newT.m} 個月 ${newT.d} 天：<code>${num(avg)} × ½ × ${num(newBase*2)} 年</code> ＝ ${fmt(newPay)}`};
+  }
+
+  // 2. 預告工資（勞基法 §16 III）：公司預告不足的天數 × 一日工資
+  //    一日工資取「月薪 ÷ 30」和「平均工資 ÷ 30」較高者
+  function noticePay(c){
+    const {notice,end,need,given,dayHigher}=c;
+    const short=Math.max(0,need-given);
+    let how;
+    if(need===0) how="年資未滿 3 個月，法律沒有要求預告。";
+    else if(notice==null) how=`依年資應提前 ${need} 天預告。你沒填通知日，這裡假設公司有預告足額。`;
+    else if(short===0) how=`依年資應提前 <b>${need} 天</b>預告，公司給了 ${given} 天，足額，不用補錢。`;
+    else how=`依年資應提前 <b>${need} 天</b>預告，公司只給 ${given} 天，少 ${short} 天：<code>${short} 天 × ${num(Math.round(dayHigher))} 元/日</code>`;
+    const extra = notice!=null && notice>end ? `<div class="flag">通知日在離職日之後，請檢查日期。</div>` : "";
+    return {amount:Math.round(short*dayHigher), law:"勞基法§16", how, extra};
+  }
+
+  // 3. 特休未休工資（勞基法 §38 IV）：未休時數 × 時薪（月薪 ÷ 30 ÷ 8）
+  //    有填「剩餘特休時數」就以它為準；沒填就用「週年制天數 × 8 − 已休時數」推算
+  function leavePay(c){
+    const {months,dayW,remainIn,used}=c;
+    const ent=annual(months), entH=ent*8, hourW=dayW/8;
+    const left = remainIn!=="" ? Math.max(0,parseFloat(remainIn)||0) : Math.max(0,entH-used);
+    const hr=`${num(hourW)} 元/小時（月薪 ÷ 30 ÷ 8）`;
+    const how = remainIn!==""
+      ? `以你填的剩餘 ${num(left)} 小時計算：<code>${num(left)} 小時 × ${hr}</code>`
+      : `依年資今年度有 <b>${ent} 天（${entH} 小時）</b>特休（週年制），已休 ${num(used)} 小時，剩 ${num(left)} 小時：<code>${num(left)} × ${hr}</code>`;
+    return {amount:Math.round(left*hourW), law:"勞基法§38", how};
+  }
+
+  // 4. 謀職假（勞基法 §16 II）：年資滿 3 個月、有法定預告期才有
+  //    有填通知日 → 以公司實際給的預告期間計；沒填 → 假設足額預告，從離職日往前推法定天數
+  function jobSearch(c){
+    const {notice,end,need,given}=c;
+    const period = need===0 ? 0 : (notice!=null ? given : need);
+    const blocks=jobLeave(period);
+    const days=blocks.reduce((a,b)=>a+b.days,0);
+    if(period===0){
+      return {amount:"0 天", law:"勞基法§16 II",
+        how: need===0 ? "年資未滿 3 個月沒有預告期，也就沒有謀職假。" : "沒有預告期間，無法請謀職假。"};
+    }
+    // 列出每一段的起訖日（預告期間從通知隔天開始）
+    let cur = notice!=null ? notice+DAY : end-(need-1)*DAY;
+    const md=t=>{ const d=new Date(t); return `${d.getUTCMonth()+1}/${d.getUTCDate()}`; };
+    const extra=`<div class="weeks">`+blocks.map(b=>{
+      const from=cur, to=cur+(b.len-1)*DAY;
+      cur+=b.len*DAY;
+      return `<div class="wk">${md(from)}–${md(to)}（${b.len} 天）<b>可請 ${b.days} 天</b></div>`;
+    }).join("")+`</div>`;
+    return {amount:`${days} 天`, law:"勞基法§16 II",
+      how:`預告期間 ${period} 天，每 7 天可請 2 天，工資照給。最後不滿 7 天仍可請 2 天（只剩 1 天則請 1 天）。`, extra};
+  }
+
+  // ── 主流程：讀表單 → 檢查日期 → 算四個項目 → 輸出 ──
+  function showError(msg){
+    $("sheet").innerHTML=`<div class="row"><div class="how">${msg}</div></div>`;
+    $("total").textContent="—";
+    $("totalSub").textContent="";
+    $("tenure").innerHTML="";
+  }
+
+  function calc(){
+    const start=parse($("start").value), end=parse($("end").value);
+    const noticeIn=$("notice").value, notice=parse(noticeIn);
+    const wage=Math.max(0,parseFloat($("wage").value)||0);
+    const avg=Math.max(0,parseFloat($("avg").value)||0)||wage;  // 平均工資留空或填 0 → 同月薪
+
+    if(!start||!end||end<start) return showError("請填寫到職日和離職日，離職日要在到職日之後。");
+    if(noticeIn && (notice==null||notice<start)) return showError("公司通知資遣的日期不能早於到職日，請檢查日期。");
+
+    const endEx=end+DAY;  // 離職日當天也算年資，所以終點取隔天（不含）
+    const tenure=ymd(start,endEx), months=tenure.y*12+tenure.m;
+    const dayW=wage/30;
+    const need=noticeDays(months);
+    // 公司實際給的預告天數：通知隔天～最後工作日；沒填通知日就假設足額
+    const given = notice!=null ? Math.max(0,Math.round((end-notice)/DAY)) : need;
+    const c={start, end, endEx, notice, avg, tenure, months, need, given, dayW,
+      dayHigher: Math.max(dayW, avg/30),
+      useOld: $("old").checked && start<SPLIT,  // 勾了舊制但 2005/7/1 後才到職，仍全部用新制
+      remainIn: $("remain").value,
+      used: Math.max(0,parseFloat($("used").value)||0)};
+
+    const sev=severance(c), np=noticePay(c), lp=leavePay(c), js=jobSearch(c);
+    const total=sev.amount+np.amount+lp.amount;
+
+    $("tenure").innerHTML=`<span>年資 <b>${tenure.y} 年 ${tenure.m} 個月 ${tenure.d} 天</b></span><span>到職至離職共 <b>${num(Math.round((endEx-start)/DAY))}</b> 天</span>`;
+    $("sheet").innerHTML=row("資遣費",sev)+row("預告工資",np)+row("特休未休工資",lp)+row("謀職假",js);
+    $("total").textContent=fmt(total);
+    $("totalSub").textContent=`資遣費 ${fmt(sev.amount)}　預告工資 ${fmt(np.amount)}　特休 ${fmt(lp.amount)}`;
+  }
+
+  $("f").addEventListener("input",calc);
+  $("f").addEventListener("submit",e=>e.preventDefault());
+  calc();
+})();
+</script>
+</body>
+</html>
