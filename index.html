@@ -43,6 +43,8 @@ input[type=date]::-webkit-date-and-time-value{text-align:left}
 input:focus-visible,summary:focus-visible,a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .check{display:flex;gap:8px;align-items:flex-start;font-size:13px}
 .check input{margin-top:4px;accent-color:var(--accent)}
+.opts{display:flex;flex-wrap:wrap;gap:4px 20px;padding-left:22px;margin-top:-8px}
+.opts .check{font-weight:500}
 .sec{font-size:11px;letter-spacing:.12em;color:var(--muted);font-weight:700;border-top:1px solid var(--line);padding-top:12px}
 .results{display:grid;gap:16px;min-width:0}
 .total{background:var(--accent);color:var(--paper);border-radius:10px;padding:20px 22px;display:grid;gap:4px}
@@ -83,7 +85,7 @@ a.law:hover{text-decoration:underline}
 <div class="wrap">
   <header>
     <h1>資遣不求人</h1>
-    <p>被資遣時，公司該給你多少？輸入日期和薪水，一次算出資遣費、預告工資、特休未休工資和謀職假天數。下方已填入範例，改成你的資料即可。</p>
+    <p>被資遣時，公司該給你多少？輸入日期和薪水，一次算出資遣費、預告工資、特休未休工資和謀職假天數，也能按比例試算年終。下方已填入範例，改成你的資料即可。</p>
   </header>
 
   <div class="grid">
@@ -126,6 +128,19 @@ a.law:hover{text-decoration:underline}
         <span class="hint">知道剩幾小時就直接填（週年制、曆年制都可以），有填就以這個為準。記得算進去年遞延未休的時數</span>
       </div>
 
+      <div class="sec">年終</div>
+      <div class="field">
+        <label for="bonusM">年終獎金月數</label>
+        <input type="number" id="bonusM" inputmode="decimal" min="0" step="0.5" placeholder="例如 2">
+        <span class="hint">以最近一個月薪資為基數，按今年在職期間比例試算</span>
+      </div>
+      <label class="check"><input type="checkbox" id="bonusIn"> 把年終加進合計</label>
+      <div class="opts" role="radiogroup" aria-label="年終加進合計的算法">
+        <label class="check"><input type="radio" name="bonusBy" value="day" checked> 以天算</label>
+        <label class="check"><input type="radio" name="bonusBy" value="month"> 以月算</label>
+      </div>
+
+      <div class="sec">其他</div>
       <label class="check"><input type="checkbox" id="old"> 民國 94 年 7 月 1 日前到職，且保留舊制年資</label>
     </form>
 
@@ -149,6 +164,7 @@ a.law:hover{text-decoration:underline}
       <li><b>年資從到職那天起算</b><br><span class="d">試用期也算在內；同一雇主調動單位的年資要合併計算（<a href="https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&amp;flno=57" target="_blank" rel="noopener">勞基法第 57 條</a>）。</span></li>
       <li><b>預告期間用日曆天算</b><br><span class="d">從通知的隔天起算，算到最後工作日（<a href="https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&amp;flno=16" target="_blank" rel="noopener">勞基法第 16 條</a>）。公司給的天數不夠，差幾天就要補幾天工資。</span></li>
       <li><b>特休以週年制計算</b><br><span class="d">天數依<a href="https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&amp;flno=38" target="_blank" rel="noopener">勞基法第 38 條</a>，1 天以 8 小時換算。如果你已經知道剩幾小時（例如從打卡系統查到），或公司用曆年制、會計年度制，或有去年遞延沒休完的時數，請直接填「剩餘特休時數」，會比自動推算更準。離職時沒休完的特休，公司要折算工資給你。</span></li>
+      <li><b>年終要看公司規定</b><br><span class="d">年終獎金不是法定給付，離職時能不能按比例領，要看勞動契約、工作規則或公司過去的慣例。這裡提供「以天算」和「以月算」兩種常見算法給你參考，勾選後才會加進合計。</span></li>
       <li><b>謀職假公司不能拒絕</b><br><span class="d">預告期間每 7 天可請 2 天，工資照給，公司也不能要求你拿面試證明（<a href="https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&amp;flno=16" target="_blank" rel="noopener">勞基法第 16 條</a> 第 2 項）。</span></li>
       <li><b>付款期限</b><br><span class="d">資遣費應在離職後 30 日內付清（<a href="https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&amp;flno=12" target="_blank" rel="noopener">勞工退休金條例第 12 條</a>）；薪資、預告工資和特休工資應在離職時結清。</span></li>
       <li><b class="danger">記得拿非自願離職證明</b><br><span class="d">申請失業給付要用。公司也必須在你離職 10 日前向主管機關通報資遣（<a href="https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0090001&amp;flno=33" target="_blank" rel="noopener">就業服務法第 33 條</a>）。</span></li>
@@ -236,9 +252,10 @@ a.law:hover{text-decoration:underline}
     "勞基法§38":"N0030001&flno=38","勞退條例§12":"N0030020&flno=12"};
   const chip=k=>`<a class="law" href="https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=${LAW[k]}" target="_blank" rel="noopener" title="查看法條全文">${k}</a>`;
   // 一列結算項目。amount 是數字時格式化成金額，是字串時（如「6 天」）原樣顯示；law 多條以「／」分隔
-  function row(title,{amount,law,how,extra=""}){
-    return `<div class="row"><h3>${title}${law.split("／").map(chip).join("")}</h3>
-      <div class="amt ${amount===0?'zero':''}">${typeof amount==="number"?fmt(amount):amount}</div>
+  // muted：金額顯示成灰字（例如沒加進合計的項目）
+  function row(title,{amount,law,how,extra="",muted=false}){
+    return `<div class="row"><h3>${title}${law?law.split("／").map(chip).join(""):""}</h3>
+      <div class="amt ${amount===0||muted?'zero':''}">${typeof amount==="number"?fmt(amount):amount}</div>
       <div class="how">${how}</div>${extra}</div>`;
   }
 
@@ -324,7 +341,27 @@ a.law:hover{text-decoration:underline}
       how:`預告期間 ${period} 天，每 7 天可請 2 天，工資照給。最後不滿 7 天仍可請 2 天（只剩 1 天則請 1 天）。`, extra};
   }
 
-  // ── 主流程：讀表單 → 檢查日期 → 算四個項目 → 輸出 ──
+  // 5. 年終獎金（按比例）：不是法定給付，看契約或公司慣例；以月薪為基數，期間為離職那年 1/1（或到職日）～離職日
+  //    以天算：月薪 × 月數 × 在職天數 ÷ 當年天數
+  //    以月算：月薪 × 月數 × 在職整月數 ÷ 12（未滿 1 個月不計）
+  //    回傳的 amount 是要加進合計的金額（沒勾選為 0）
+  function bonus(c){
+    const {start,end,endEx,wage,bonusM,bonusIn,bonusBy}=c;
+    const [y]=parts(end), yStart=utc(y,0,1), from=Math.max(start,yStart);
+    const days=Math.round((endEx-from)/DAY), yearDays=Math.round((utc(y+1,0,1)-yStart)/DAY);
+    const t=ymd(from,endEx), mons=t.y*12+t.m;
+    const base=wage*bonusM;
+    const byDay=Math.round(base*days/yearDays), byMonth=Math.round(base*mons/12);
+    if(!bonusM) return {amount:0, shown:"—", muted:true, how:"填左邊的「年終獎金月數」就會試算。"};
+    const pick=bonusBy==="month"?byMonth:byDay;
+    const mark=k=>bonusIn&&bonusBy===k?"<b>（加進合計）</b>":"";
+    const how=`${y} 年在職 ${days} 天（${mons} 個月 ${t.d} 天）。年終不是法定給付，要看勞動契約、工作規則或公司慣例有沒有約定按比例發。<br>`
+      +`以天算：<code>${num(wage)} × ${num(bonusM)} 個月 × ${days} ÷ ${yearDays} 天</code> ＝ ${fmt(byDay)}${mark("day")}<br>`
+      +`以月算：<code>${num(wage)} × ${num(bonusM)} 個月 × ${mons} ÷ 12 個月</code> ＝ ${fmt(byMonth)}${mark("month")}（未滿 1 個月不計）`;
+    return {amount:bonusIn?pick:0, shown:bonusIn?pick:"未計入", muted:!bonusIn, how};
+  }
+
+  // ── 主流程：讀表單 → 檢查日期 → 算五個項目 → 輸出 ──
   function showError(msg){
     $("sheet").innerHTML=`<div class="row"><div class="how">${msg}</div></div>`;
     $("total").textContent="—";
@@ -351,15 +388,19 @@ a.law:hover{text-decoration:underline}
       dayHigher: Math.max(dayW, avg/30),
       useOld: $("old").checked && start<SPLIT,  // 勾了舊制但 2005/7/1 後才到職，仍全部用新制
       remainIn: $("remain").value,
-      used: Math.max(0,parseFloat($("used").value)||0)};
+      used: Math.max(0,parseFloat($("used").value)||0),
+      wage, bonusM: Math.max(0,parseFloat($("bonusM").value)||0),
+      bonusIn: $("bonusIn").checked,
+      bonusBy: document.querySelector("input[name=bonusBy]:checked").value};
 
-    const sev=severance(c), np=noticePay(c), lp=leavePay(c), js=jobSearch(c);
-    const total=sev.amount+np.amount+lp.amount;
+    const sev=severance(c), np=noticePay(c), lp=leavePay(c), js=jobSearch(c), bn=bonus(c);
+    const total=sev.amount+np.amount+lp.amount+bn.amount;
 
     $("tenure").innerHTML=`<span>年資 <b>${tenure.y} 年 ${tenure.m} 個月 ${tenure.d} 天</b></span><span>到職至離職共 <b>${num(Math.round((endEx-start)/DAY))}</b> 天</span>`;
-    $("sheet").innerHTML=row("資遣費",sev)+row("預告工資",np)+row("特休未休工資",lp)+row("謀職假",js);
+    $("sheet").innerHTML=row("資遣費",sev)+row("預告工資",np)+row("特休未休工資",lp)+row("年終獎金（按比例）",{...bn, amount:bn.shown})+row("謀職假",js);
     $("total").textContent=fmt(total);
-    $("totalSub").textContent=`資遣費 ${fmt(sev.amount)}　預告工資 ${fmt(np.amount)}　特休 ${fmt(lp.amount)}`;
+    $("totalSub").textContent=`資遣費 ${fmt(sev.amount)}　預告工資 ${fmt(np.amount)}　特休 ${fmt(lp.amount)}`
+      +(c.bonusIn&&c.bonusM?`　年終 ${fmt(bn.amount)}`:"");
   }
 
   $("f").addEventListener("input",calc);
