@@ -74,7 +74,7 @@ a.law:hover{text-decoration:underline}
 .notes li b{color:var(--ink)}
 .notes li b.danger{color:var(--danger)}  /* 一定要提醒的重點用紅字 */
 .notes li span.d{color:var(--muted)}
-.notes a{color:var(--accent)}
+.notes a,.how a{color:var(--accent)}
 .disc{font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;margin:0}
 .sel{user-select:all;font-family:var(--f-num);color:var(--ink)}
 @media (prefers-reduced-motion:no-preference){.amt,.total .v{transition:color .2s}}
@@ -178,6 +178,10 @@ a.law:hover{text-decoration:underline}
   const $ = id => document.getElementById(id);
   const fmt = n => "NT$ " + Math.round(n).toLocaleString("zh-TW");  // 金額：NT$ 12,345（不換行空白，窄螢幕不會把 NT$ 和數字拆開）
   const num = n => (Math.round(n*100)/100).toLocaleString("zh-TW");  // 一般數字：千分位、最多 2 位小數
+  // 年資、基數用 4 位小數，照算式乘回去才會等於畫面上的金額（2 位小數會差到上百元）
+  const num4 = n => n.toLocaleString("zh-TW",{maximumFractionDigits:4});
+  // 年資拆成算式：1 年 7 個月 1 天 → 1 + 7/12 + 1/360（未滿 1 個月的天數以 30 天為 1 個月）
+  const yrsExpr = t => [t.y, t.m?`${t.m}/12`:"", t.d?`${t.d}/360`:""].filter(Boolean).join(" + ")||"0";
 
   // ── 日期工具 ──
   // 一律以 UTC 毫秒數表示「純日期」，避免時區與日光節約時間造成的誤差
@@ -267,28 +271,41 @@ a.law:hover{text-decoration:underline}
   //    新制（勞退條例 §12）：每滿 1 年給 0.5 個月平均工資，未滿 1 年按比例，最高 6 個月
   //    舊制（勞基法 §17）：每滿 1 年給 1 個月平均工資，未滿 1 個月以 1 個月計，沒有上限
   //    保留舊制年資者：2005/7/1 前的年資用舊制、之後用新制，兩段相加
+  //    金額和勞動部資遣費試算器一致：小數點後 6 位截斷再無條件進位到元
+  //    （先截斷是避免 30000 × 1.75 這類浮點誤差算成 52500.0000001 而多進 1 元）
+  const ceilPay = x => Math.ceil(Math.floor(x*1e6)/1e6);
+  const calcLink = `<a href="https://calcr2.mol.gov.tw/SeverancePay" target="_blank" rel="noopener">勞動部資遣費試算</a>`;
+  // 新制算式說明：先列公式，再代入年資、算出幾個月平均工資
+  const newHow = (avg,t,base) => {
+    const yrs=t.y+(t.m+t.d/30)/12;
+    return `公式：資遣費 ＝ 平均月工資 × 0.5 個月 × 年資<br>`+
+      `　　　年資 ＝ 整年數 + 整月數/12 + 剩餘天數/360<br>`+
+      `代入：年資 ＝ <code>${yrsExpr(t)}</code> ≈ ${num4(yrs)} 年<br>`+
+      `　　　資遣費 ＝ <code>${num(avg)} × 0.5 × ${num4(yrs)}</code> ＝ ${num4(base)} 個月平均工資${base>=6?"（已達上限 6 個月）":""}`;
+  };
+  const howNote = `未滿 1 個月的天數以 30 天為 1 個月。可用${calcLink}對照`;
   function severance(c){
     const {start,endEx,avg,tenure,useOld}=c;
     if(!useOld){
       const yrs=tenure.y+(tenure.m+tenure.d/30)/12;
       const base=Math.min(6,0.5*yrs);
-      return {amount:Math.round(base*avg), law:"勞退條例§12",
-        how:`<code>${num(avg)} × ½ × ${num(yrs)} 年</code> ＝ ${num(base)} 個月平均工資${base>=6?"（已達上限 6 個月）":""}`};
+      return {amount:ceilPay(base*avg), law:"勞退條例§12",
+        how:`${newHow(avg,tenure,base)}<br>${howNote}`};
     }
     // 舊制段：到職日～2005/6/30，零頭天數進位成 1 個月
     const oldT=ymd(start, Math.min(SPLIT,endEx));
     let oldY=oldT.y, oldM=oldT.m+(oldT.d>0?1:0);
     if(oldM===12){ oldY++; oldM=0; }
-    const oldBase=oldY+oldM/12, oldPay=Math.round(oldBase*avg);
+    const oldBase=oldY+oldM/12, oldPay=ceilPay(oldBase*avg);
     // 新制段：2005/7/1～離職日（在 2005/7/1 前就離職則為 0）
     let newT={y:0,m:0,d:0}, newBase=0;
     if(endEx>SPLIT){
       newT=ymd(SPLIT,endEx);
       newBase=Math.min(6, 0.5*(newT.y+(newT.m+newT.d/30)/12));
     }
-    const newPay=Math.round(newBase*avg);
+    const newPay=ceilPay(newBase*avg);
     return {amount:oldPay+newPay, law:"勞基法§17／勞退條例§12",
-      how:`舊制 ${oldY} 年 ${oldM} 個月（未滿 1 個月以 1 個月計）：<code>${num(avg)} × ${num(oldBase)}</code> ＝ ${fmt(oldPay)}<br>新制 ${newT.y} 年 ${newT.m} 個月 ${newT.d} 天：<code>${num(avg)} × ½ × ${num(newBase*2)} 年</code> ＝ ${fmt(newPay)}`};
+      how:`舊制 ${oldY} 年 ${oldM} 個月（未滿 1 個月以 1 個月計）：<code>${num(avg)} × (${yrsExpr({y:oldY,m:oldM,d:0})})</code> ＝ ${fmt(oldPay)}<br>新制 ${newT.y} 年 ${newT.m} 個月 ${newT.d} 天 ＝ ${fmt(newPay)}<br>${endEx>SPLIT?newHow(avg,newT,newBase)+"<br>":""}${howNote}`};
   }
 
   // 2. 預告工資（勞基法 §16 III）：公司預告不足的天數 × 一日工資
