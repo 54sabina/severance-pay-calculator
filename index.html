@@ -35,7 +35,11 @@ form{background:var(--paper);border:1px solid var(--line);border-radius:10px;pad
 .field{display:grid;gap:4px}
 label{font-size:13px;font-weight:700}
 .hint{font-size:12px;color:var(--muted);line-height:1.45}
-input[type=date],input[type=number]{font:inherit;font-family:var(--f-num);font-size:15px;width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+/* 字級 16px：iOS 小於 16px 會在點選時自動放大頁面 */
+input[type=date],input[type=number]{font:inherit;font-family:var(--f-num);font-size:16px;display:block;width:100%;min-width:0;min-height:44px;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+/* iOS Safari 的日期欄位有固定最小寬度且文字置中，會撐出容器 */
+input[type=date]{-webkit-appearance:none;appearance:none;text-align:left}
+input[type=date]::-webkit-date-and-time-value{text-align:left}
 input:focus-visible,summary:focus-visible,a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .check{display:flex;gap:8px;align-items:flex-start;font-size:13px}
 .check input{margin-top:4px;accent-color:var(--accent)}
@@ -44,18 +48,18 @@ input:focus-visible,summary:focus-visible,a:focus-visible,button:focus-visible{o
 .total{background:var(--accent);color:var(--paper);border-radius:10px;padding:20px 22px;display:grid;gap:4px}
 .total .k{font-size:13px;opacity:.85}
 .total .v{font-family:var(--f-num);font-size:clamp(30px,6vw,44px);font-weight:600;font-variant-numeric:tabular-nums;line-height:1.15}
-.total .s{font-size:13px;opacity:.9}
+.total .s{font-size:13px;opacity:.9;word-break:keep-all}  /* 只在項目間的全形空白換行 */
 .tenure{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:14px;color:var(--muted)}
 .tenure b{color:var(--ink);font-family:var(--f-num);font-weight:600}
 .sheet{background:var(--paper);border:1px solid var(--line);border-radius:10px}
 .row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;padding:16px 20px;border-top:1px solid var(--line)}
 .row:first-child{border-top:0}
-.row h3{margin:0;font-size:16px;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.row h3{margin:0;font-size:16px;word-break:keep-all;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .law{font-size:11px;font-weight:500;color:var(--accent);background:var(--accent-soft);padding:1px 7px;border-radius:999px;letter-spacing:.03em;text-decoration:none}
 .amt{font-family:var(--f-num);font-weight:600;font-size:20px;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 .amt.zero{color:var(--muted)}
 .how{grid-column:1/-1;font-size:13px;color:var(--muted)}
-.how code{font-family:var(--f-num);font-size:12.5px;color:var(--ink);background:var(--bg);padding:1px 6px;border-radius:4px;overflow-wrap:anywhere}
+.how code{font-family:var(--f-num);font-size:12.5px;color:var(--ink);background:var(--bg);padding:1px 6px;border-radius:4px;overflow-wrap:anywhere;-webkit-box-decoration-break:clone;box-decoration-break:clone}
 .flag{grid-column:1/-1;font-size:13px;background:var(--warn-soft);color:var(--warn);padding:8px 10px;border-radius:6px}
 .weeks{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
 .wk{border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-size:12px;min-width:120px;background:var(--bg)}
@@ -63,7 +67,7 @@ input:focus-visible,summary:focus-visible,a:focus-visible,button:focus-visible{o
 a.law:hover{text-decoration:underline}
 .notes{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:20px 22px;display:grid;gap:14px}
 .notes h2{margin:0;font-family:var(--f-display);font-size:20px;font-weight:700}
-.notes ol{margin:0;padding-left:1.4em;display:grid;gap:10px;font-size:14px;max-width:80ch}
+.notes ol{margin:0;padding-left:1.4em;display:grid;gap:10px;font-size:14px}
 .notes li::marker{color:var(--accent);font-family:var(--f-num);font-weight:600}
 .notes li b{color:var(--ink)}
 .notes li b.danger{color:var(--danger)}  /* 一定要提醒的重點用紅字 */
@@ -156,7 +160,7 @@ a.law:hover{text-decoration:underline}
 <script>
 (function(){
   const $ = id => document.getElementById(id);
-  const fmt = n => "NT$ " + Math.round(n).toLocaleString("zh-TW");  // 金額：NT$ 12,345
+  const fmt = n => "NT$ " + Math.round(n).toLocaleString("zh-TW");  // 金額：NT$ 12,345（不換行空白，窄螢幕不會把 NT$ 和數字拆開）
   const num = n => (Math.round(n*100)/100).toLocaleString("zh-TW");  // 一般數字：千分位、最多 2 位小數
 
   // ── 日期工具 ──
@@ -355,7 +359,7 @@ a.law:hover{text-decoration:underline}
     $("tenure").innerHTML=`<span>年資 <b>${tenure.y} 年 ${tenure.m} 個月 ${tenure.d} 天</b></span><span>到職至離職共 <b>${num(Math.round((endEx-start)/DAY))}</b> 天</span>`;
     $("sheet").innerHTML=row("資遣費",sev)+row("預告工資",np)+row("特休未休工資",lp)+row("謀職假",js);
     $("total").textContent=fmt(total);
-    $("totalSub").textContent=`資遣費 ${fmt(sev.amount)}　預告工資 ${fmt(np.amount)}　特休 ${fmt(lp.amount)}`;
+    $("totalSub").textContent=`資遣費 ${fmt(sev.amount)}　預告工資 ${fmt(np.amount)}　特休 ${fmt(lp.amount)}`;
   }
 
   $("f").addEventListener("input",calc);
